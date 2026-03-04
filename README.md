@@ -69,5 +69,6 @@ Open [http://localhost:3000](http://localhost:3000) and drop an audio file.
 ## Notes
 
 - The "Unknown CPU vendor" warning on Apple Silicon is cosmetic and suppressed via `ort.env.logLevel = "error"`. Inference is unaffected.
-- Audio longer than 9 seconds is scored in overlapping hops and averaged.
-- Audio shorter than 9 seconds is looped to meet the minimum length.
+- Audio up to 50 seconds is accepted. Longer files are rejected with an error.
+- Audio shorter than 9 seconds is looped to meet the minimum model window size.
+- The ONNX model has a fixed 9.01-second input window; longer audio is split into non-overlapping windows and the scores are averaged.

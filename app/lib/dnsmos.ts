@@ -19,8 +19,10 @@ ort.env.logLevel = "error";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const SAMPLING_RATE = 16000;
-const INPUT_LENGTH = 9.01; // seconds
+const INPUT_LENGTH = 9.01; // seconds — fixed model window size
 const LEN_SAMPLES = Math.round(INPUT_LENGTH * SAMPLING_RATE); // 144160
+const MAX_DURATION = 50; // seconds — maximum accepted input length
+const MAX_SAMPLES = MAX_DURATION * SAMPLING_RATE;
 
 // Mel spectrogram parameters (matches Python DNSMOS defaults)
 const N_MELS = 120;
@@ -257,7 +259,14 @@ export async function runDNSMOS(
       ? resample(audioData, sampleRate, SAMPLING_RATE)
       : audioData;
 
-  // Pad/repeat to minimum length
+  // Enforce max duration
+  if (audio.length > MAX_SAMPLES) {
+    throw new Error(
+      `Audio is ${(audio.length / SAMPLING_RATE).toFixed(1)}s — max is ${MAX_DURATION}s. Please trim your file.`,
+    );
+  }
+
+  // Pad/repeat to minimum model window length
   while (audio.length < LEN_SAMPLES) {
     const combined = new Float32Array(audio.length * 2);
     combined.set(audio);
@@ -265,10 +274,10 @@ export async function runDNSMOS(
     audio = combined;
   }
 
-  // Process in 9.01-second segments, 1-second hops
-  const numHops =
-    Math.floor(audio.length / SAMPLING_RATE) - Math.floor(INPUT_LENGTH) + 1;
-  const hopLenSamples = SAMPLING_RATE;
+  // Score the entire audio as one piece.
+  // The model has a fixed 9.01s input window, so we tile non-overlapping
+  // windows across the full duration and average the results.
+  const numWindows = Math.max(1, Math.floor(audio.length / LEN_SAMPLES));
 
   const allScores: number[][] = [];
 
@@ -277,8 +286,8 @@ export async function runDNSMOS(
     getP808Session(),
   ]);
 
-  for (let idx = 0; idx < Math.max(1, numHops); idx++) {
-    const start = idx * hopLenSamples;
+  for (let idx = 0; idx < numWindows; idx++) {
+    const start = idx * LEN_SAMPLES;
     const end = start + LEN_SAMPLES;
     if (end > audio.length) break;
 
