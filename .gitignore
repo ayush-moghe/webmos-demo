@@ -40,5 +40,4 @@ yarn-error.log*
 *.tsbuildinfo
 
 # screenshot
-example.png
 next-env.d.ts
