@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import type { DNSMOSResult } from "./lib/dnsmos";
+import type { DNSMOSResult } from "webmos";
 
 export default function Home() {
   const [result, setResult] = useState<DNSMOSResult | null>(null);
@@ -17,8 +17,8 @@ export default function Home() {
     setFileName(file.name);
 
     try {
-      // Lazy-load the DNSMOS module (large WASM init)
-      const { runDNSMOS } = await import("./lib/dnsmos");
+      // Lazy-load the webmos package (large WASM init)
+      const { runDNSMOS } = await import("webmos");
 
       // Decode audio file
       const arrayBuffer = await file.arrayBuffer();
@@ -86,7 +86,6 @@ export default function Home() {
       {result && (
         <div className="bg-gray-900 rounded-xl p-6 w-full max-w-md space-y-3">
           <h2 className="text-lg font-semibold mb-2">Results</h2>
-          <ScoreRow label="P.808 MOS" value={result.p808_mos} />
           <ScoreRow label="Signal (SIG)" value={result.mos_sig} />
           <ScoreRow label="Background (BAK)" value={result.mos_bak} />
           <ScoreRow label="Overall (OVR)" value={result.mos_ovr} />
